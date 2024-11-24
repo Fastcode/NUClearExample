@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2018 NUbots
+# Copyright (c) 2017 NUbots
 #
 # This file is part of the NUbots codebase.
 # See https://github.com/NUbots/NUbots for further info.
@@ -25,6 +25,3 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-
-from .ampscii import ampscii
-from .bigtext import bigtext
