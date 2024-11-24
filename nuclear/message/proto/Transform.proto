@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2016 NUbots
+// Copyright (c) 2023 NUbots
 //
 // This file is part of the NUbots codebase.
 // See https://github.com/NUbots/NUbots for further info.
@@ -24,16 +24,44 @@
 // SOFTWARE.
 syntax = "proto3";
 
-import "google/protobuf/descriptor.proto";
+import "Vector.proto";
 
-enum PointerType {
-    NONE   = 0;
-    RAW    = 1;
-    SHARED = 2;
-    UNIQUE = 3;
+message iso2 {
+    vec3 x = 1;
+    vec3 y = 2;
+    vec3 z = 3;
 }
 
-extend google.protobuf.FieldOptions {
-    PointerType pointer    = 50000;
-    uint32      array_size = 50001;
+message fiso2 {
+    fvec3 x = 1;
+    fvec3 y = 2;
+    fvec3 z = 3;
+}
+
+message iso3 {
+    vec4 x = 1;
+    vec4 y = 2;
+    vec4 z = 3;
+    vec4 t = 4;
+}
+
+message fiso3 {
+    fvec4 x = 1;
+    fvec4 y = 2;
+    fvec4 z = 3;
+    fvec4 t = 4;
+}
+
+message quat {
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    double w = 4;
+}
+
+message fquat {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float w = 4;
 }

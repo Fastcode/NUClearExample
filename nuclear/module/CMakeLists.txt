@@ -1,19 +1,51 @@
+#[[
+MIT License
+
+Copyright (c) 2016 NUbots
+
+This file is part of the NUbots codebase.
+See https://github.com/NUbots/NUbots for further info.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+]]
+
 # We use NUClearModule
-INCLUDE(NUClearModule.cmake)
+include(NUClearModule.cmake)
 
 # Remove any duplicate modules (used in more then one role)
-SET(modules ${NUCLEAR_MODULES})
-LIST(REMOVE_DUPLICATES modules)
-SET(NUCLEAR_MODULES ${modules} CACHE INTERNAL "A list of the modules in use by the system" FORCE)
+set(modules ${NUCLEAR_MODULES})
+list(REMOVE_DUPLICATES modules)
+set(NUCLEAR_MODULES
+    ${modules}
+    CACHE INTERNAL "A list of the modules in use by the system" FORCE
+)
 
 # Clear our list of data files
-UNSET(NUCLEAR_MODULE_DATA_FILES CACHE)
+unset(NUCLEAR_MODULE_DATA_FILES CACHE)
 
 # Build each of our modules and their corresponding tests
-FOREACH(module ${NUCLEAR_MODULES})
-    STRING(REPLACE "::" "/" module_path "${module}")
-    STRING(REPLACE "::" "" module_name "${module}")
+foreach(module ${NUCLEAR_MODULES})
 
-    # Add the subdirectories
-    ADD_SUBDIRECTORY("${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}/${module_path}" "${PROJECT_BINARY_DIR}/${NUCLEAR_MODULE_DIR}/${module_path}")
-ENDFOREACH()
+  # Add the subdirectories
+  string(REPLACE "::" "/" module_path "${module}")
+  add_subdirectory(
+    "${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}/${module_path}"
+    "${PROJECT_BINARY_DIR}/${NUCLEAR_MODULE_DIR}/${module_path}"
+  )
+endforeach()

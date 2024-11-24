@@ -1,7 +1,7 @@
 #[[
 MIT License
 
-Copyright (c) 2016 NUbots
+Copyright (c) 2022 NUbots
 
 This file is part of the NUbots codebase.
 See https://github.com/NUbots/NUbots for further info.
@@ -25,10 +25,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-# If the user has provided their own CMakeLists.txt file in the utility dir use that otherwise we default to just
-# building everything in there
-if(EXISTS "${PROJECT_SOURCE_DIR}/${NUCLEAR_UTILITY_DIR}/CMakeLists.txt")
-  add_subdirectory("${PROJECT_SOURCE_DIR}/${NUCLEAR_UTILITY_DIR}" "${PROJECT_BINARY_DIR}/${NUCLEAR_UTILITY_DIR}")
-else()
-  include(NUClearUtility.cmake)
-endif()
+# Silence warnings about target_sources converting relative paths to abolutes
+cmake_policy(SET CMP0076 NEW)
+
+find_package(Catch2 REQUIRED)
+
+add_executable(TestNUClearRoles)
+
+# Add all of the tests
+add_subdirectory(message)
+target_link_libraries(TestNUClearRoles PUBLIC nuclear::message)
+target_link_libraries(TestNUClearRoles PUBLIC Catch2::Catch2WithMain)
+
+set_property(TARGET TestNUClearRoles PROPERTY FOLDER "nuclear/tests")
+
+# Add the test
+add_test(
+  NAME TestNUClearRoles
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/TestNUClearRoles
+)

@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2018 NUbots
+# Copyright (c) 2016 NUbots
 #
 # This file is part of the NUbots codebase.
 # See https://github.com/NUbots/NUbots for further info.
@@ -26,5 +26,14 @@
 # SOFTWARE.
 #
 
-from .ampscii import ampscii
-from .bigtext import bigtext
+import re
+import sys
+
+input_file = sys.argv[1]
+output_file = sys.argv[2]
+
+with open(input_file, "r") as f:
+    code = f.read()
+
+with open(output_file, "w") as f:
+    f.write(re.sub(r"package\s+message", "package protobuf.message", code))
