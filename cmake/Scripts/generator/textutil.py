@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2018 NUbots
+# Copyright (c) 2016 NUbots
 #
 # This file is part of the NUbots codebase.
 # See https://github.com/NUbots/NUbots for further info.
@@ -26,5 +26,14 @@
 # SOFTWARE.
 #
 
-from .ampscii import ampscii
-from .bigtext import bigtext
+import textwrap
+
+
+def indent(str, len=4):
+    """Indent every line of the string by the value provided in length"""
+    return "\n".join([(" " * len) + l for l in str.splitlines()])
+
+
+def dedent(str):
+    """Remove all common whitespace from each line of the string"""
+    return textwrap.dedent(str)

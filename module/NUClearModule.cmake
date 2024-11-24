@@ -1,219 +1,264 @@
-INCLUDE(CMakeParseArguments)
+include(CMakeParseArguments)
 
-FUNCTION(NUCLEAR_MODULE)
+# We use threading and NUClear
+find_package(Threads REQUIRED)
+find_package(NUClear REQUIRED)
 
-    GET_FILENAME_COMPONENT(module_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+function(NUCLEAR_MODULE)
 
-    # Get our relative module path
-    FILE(RELATIVE_PATH module_target_name "${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}" ${CMAKE_CURRENT_SOURCE_DIR})
+  get_filename_component(module_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
-    # Fix windows paths
-    STRING(REPLACE "\\" "/" module_target_name "${module_path}")
+  # Get our relative module path
+  file(RELATIVE_PATH module_target_name "${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}" ${CMAKE_CURRENT_SOURCE_DIR})
 
-    # Keep our modules path for grouping later
-    SET(module_path "module/${module_target_name}")
+  # Fix windows paths
+  string(REPLACE "\\" "/" module_target_name "${module_path}")
 
-    # Stip out slashes to make it a valid target name
-    STRING(REPLACE "/" "" module_target_name "${module_target_name}")
+  # Keep our modules path for grouping later
+  set(module_path "module/${module_target_name}")
 
-    # Parse our input arguments
-    SET(options, "")
-    SET(oneValueArgs "LANGUAGE")
-    SET(multiValueArgs "INCLUDES" "LIBRARIES" "SOURCES" "DATA_FILES")
-    CMAKE_PARSE_ARGUMENTS(MODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  # Stip out slashes to make it a valid target name
+  string(REPLACE "/" "" module_target_name "${module_target_name}")
 
-    # Include our own source and binary directories
-    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
-    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/src)
+  # Parse our input arguments
+  set(options, "")
+  set(oneValueArgs "LANGUAGE")
+  set(multiValueArgs "LIBRARIES" "SOURCES" "DATA_FILES")
+  cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    # Include our messages extensions and utility folders
-    INCLUDE_DIRECTORIES(${NUCLEAR_MESSAGE_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${NUCLEAR_UTILITY_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${NUCLEAR_EXTENSION_INCLUDE_DIRS})
+  # ####################################################################################################################
+  # Find or generate code #
+  # ####################################################################################################################
 
-    # Include any directories passed into the function
-    INCLUDE_DIRECTORIES(SYSTEM ${MODULE_INCLUDES})
+  # CPP Code
+  if(NOT MODULE_LANGUAGE OR MODULE_LANGUAGE STREQUAL "CPP")
 
-    # Include any directories used in messages utilities and extensions
-    FOREACH(lib ${NUCLEAR_MESSAGE_LIBRARIES} ${NUCLEAR_UTILITY_LIBRARIES} ${NUCLEAR_EXTENSION_LIBRARIES})
-        INCLUDE_DIRECTORIES($<TARGET_PROPERTY:${lib},INCLUDE_DIRECTORIES>)
-    ENDFOREACH(lib)
-
-    #########################
-    # Find or generate code #
-    #########################
-
-    # CPP Code
-    IF(NOT MODULE_LANGUAGE OR MODULE_LANGUAGE STREQUAL "CPP")
-
-        # A CPP module just use sources in this directory
-        FILE(GLOB_RECURSE src
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cc"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.c"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.hpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.ipp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.hh"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/**.h")
+    # A CPP module just use sources in this directory
+    file(
+      GLOB_RECURSE
+      src
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cc"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.c"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.hpp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.ipp"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.hh"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/**.h"
+    )
 
     # Python Code
-    ELSEIF(MODULE_LANGUAGE STREQUAL "PYTHON")
+  elseif(MODULE_LANGUAGE STREQUAL "PYTHON")
 
-        FIND_PACKAGE(PythonInterp 3 REQUIRED)
-        FIND_PACKAGE(pybind11 REQUIRED)
-        FIND_PACKAGE(PythonLibsNew 3 REQUIRED)
+    find_package(PythonInterp 3 REQUIRED)
+    find_package(pybind11 REQUIRED)
+    find_package(PythonLibsNew 3 REQUIRED)
 
-        # Now copy all our python files across to the python directory of output
-        FILE(GLOB_RECURSE python_files "${CMAKE_CURRENT_SOURCE_DIR}/src/**.py")
+    # Now copy all our python files across to the python directory of output
+    file(GLOB_RECURSE python_files "${CMAKE_CURRENT_SOURCE_DIR}/src/**.py")
 
-        # Copy the python files into the build directory
-        FOREACH(python_file ${python_files})
+    # Copy the python files into the build directory
+    foreach(python_file ${python_files})
 
-            # Calculate the output Directory
-            FILE(RELATIVE_PATH output_file "${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}" ${python_file})
-            SET(output_file "${PROJECT_BINARY_DIR}/python/${output_file}")
+      # Calculate the output Directory
+      file(RELATIVE_PATH output_file "${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}" ${python_file})
+      set(output_file "${PROJECT_BINARY_DIR}/python/${output_file}")
 
-            # Add the file we will generate to our output
-            LIST(APPEND python_code ${output_file})
+      # Add the file we will generate to our output
+      list(APPEND python_code ${output_file})
 
-            # Create the required folder
-            GET_FILENAME_COMPONENT(output_folder ${output_file} DIRECTORY)
-            FILE(MAKE_DIRECTORY ${output_folder})
+      # Create the required folder
+      get_filename_component(output_folder ${output_file} DIRECTORY)
+      file(MAKE_DIRECTORY ${output_folder})
 
-            # Copy across our file
-            ADD_CUSTOM_COMMAND(
-                OUTPUT ${output_file}
-                COMMAND ${CMAKE_COMMAND} -E copy ${python_file} ${output_file}
-                DEPENDS ${python_file}
-                COMMENT "Copying updated python file ${python_file}"
-            )
+      # Copy across our file
+      add_custom_command(
+        OUTPUT ${output_file}
+        COMMAND ${CMAKE_COMMAND} -E copy ${python_file} ${output_file}
+        DEPENDS ${python_file}
+        COMMENT "Copying updated python file ${python_file}"
+      )
 
-        ENDFOREACH(python_file)
+    endforeach(python_file)
 
-        FILE(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src")
 
-        ADD_CUSTOM_COMMAND(
-            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.h"
-                   "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.cpp"
-            COMMAND ${CMAKE_COMMAND}
-            ARGS -E env
-                PYTHONPATH="${PROJECT_BINARY_DIR}/python/nuclear/"
-                NUCLEAR_MODULE_DIR="${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}"
-                ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/src/${module_name}.py"
-            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src"
-            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/${module_name}.py"
-                    ${NUCLEAR_MESSAGE_LIBRARIES}
-            COMMENT "Generating bindings for python module ${module_name}")
+    add_custom_command(
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.hpp" "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.cpp"
+      COMMAND
+        ${CMAKE_COMMAND} ARGS -E env PYTHONPATH="${PROJECT_BINARY_DIR}/python/nuclear/"
+        NUCLEAR_MODULE_DIR="${PROJECT_SOURCE_DIR}/${NUCLEAR_MODULE_DIR}" ${PYTHON_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/${module_name}.py"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src"
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/${module_name}.py" nuclear::message
+      COMMENT "Generating bindings for python module ${module_name}"
+    )
 
-        SET(src "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.h"
-                "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.cpp"
-                ${python_code})
-    ENDIF()
+    set(src "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.hpp" "${CMAKE_CURRENT_BINARY_DIR}/src/${module_name}.cpp"
+            ${python_code}
+    )
+  endif()
 
-    ##############
-    # Data files #
-    ##############
+  # ####################################################################################################################
+  # Data files #
+  # ####################################################################################################################
+  file(GLOB_RECURSE data_files "${CMAKE_CURRENT_SOURCE_DIR}/data/**")
+  foreach(data_file ${data_files})
 
-    # Get our data files
-    FILE(GLOB_RECURSE data_files "${CMAKE_CURRENT_SOURCE_DIR}/data/**")
+    # Calculate the Output Directory
+    file(RELATIVE_PATH output_file "${CMAKE_CURRENT_SOURCE_DIR}/data" ${data_file})
+    set(output_file "${PROJECT_BINARY_DIR}/${output_file}")
 
-    # Process the data files
-    FOREACH(data_file ${data_files})
+    # Add the file we will generate to our output
+    list(APPEND data "${output_file}")
 
+    # Create the required folder
+    get_filename_component(output_folder ${output_file} DIRECTORY)
+    file(MAKE_DIRECTORY ${output_folder})
+
+    # Copy across the files
+    add_custom_command(
+      OUTPUT ${output_file}
+      COMMAND ${CMAKE_COMMAND} -E copy ${data_file} ${output_file}
+      DEPENDS ${data_file}
+      COMMENT "Copying updated data file ${data_file}"
+    )
+
+    set(NUCLEAR_MODULE_DATA_FILES
+        ${NUCLEAR_MODULE_DATA_FILES} ${output_file}
+        CACHE INTERNAL "A list of all the data files that were generated by modules" FORCE
+    )
+  endforeach(data_file)
+
+  # Copy over extra data files that the module wants to install
+  foreach(data_file ${MODULE_DATA_FILES})
+    string(REPLACE ":" ";" data_file ${data_file})
+
+    # Get data file name
+    list(GET data_file 0 input_file)
+    get_filename_component(input_file_name ${input_file} NAME)
+
+    # Determine output file
+    list(LENGTH data_file list_length)
+    if(${list_length} EQUAL 1)
+      set(output_file "${PROJECT_BINARY_DIR}/${input_file_name}")
+
+    else()
+      list(GET data_file 1 output_folder)
+      file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${output_folder})
+      set(output_file ${PROJECT_BINARY_DIR}/${output_folder}/${input_file_name})
+    endif()
+
+    # Add the file we will generate to our output
+    list(APPEND data "${output_file}")
+
+    # Copy across the files
+    add_custom_command(
+      OUTPUT ${output_file}
+      COMMAND ${CMAKE_COMMAND} -E copy ${input_file} ${output_file}
+      DEPENDS ${input_file}
+      COMMENT "Copying updated data file ${input_file}"
+    )
+
+    set(NUCLEAR_MODULE_DATA_FILES
+        ${NUCLEAR_MODULE_DATA_FILES} ${output_file}
+        CACHE INTERNAL "A list of all the data files that were generated by modules" FORCE
+    )
+  endforeach(data_file)
+
+  # ####################################################################################################################
+  # Build into library #
+  # ####################################################################################################################
+
+  # Add all our code to a library and if we are doing a shared build make it a shared library
+  set(sources ${src} ${MODULE_SOURCES} ${data})
+
+  if(NUCLEAR_LINK_TYPE STREQUAL "SHARED")
+    add_library(${module_target_name} SHARED ${sources})
+    set_property(TARGET ${module_target_name} PROPERTY LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/lib")
+  else()
+    add_library(${module_target_name} ${NUCLEAR_LINK_TYPE} ${sources})
+  endif()
+
+  # Our source dir and binary dir are our include paths
+  target_include_directories(${module_target_name} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_include_directories(${module_target_name} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/src")
+
+  # Link to the target libraries
+  target_link_libraries(${module_target_name} PUBLIC Threads::Threads)
+  target_link_libraries(${module_target_name} PUBLIC NUClear::nuclear)
+  target_link_libraries(${module_target_name} PUBLIC nuclear::utility nuclear::message nuclear::extension)
+  target_link_libraries(${module_target_name} PUBLIC ${MODULE_LIBRARIES})
+
+  # Put it in an IDE group for shared
+  set_property(TARGET ${module_target_name} PROPERTY FOLDER ${module_path})
+
+  # ####################################################################################################################
+  # Testing #
+  # ####################################################################################################################
+
+  # If we are doing tests then build the tests for this
+  if(BUILD_TESTS)
+    find_package(Catch2 REQUIRED)
+
+    # Set a different name for our test module
+    set(test_module_target_name "Test${module_target_name}")
+
+    # Rebuild our sources using the test module
+    file(
+      GLOB_RECURSE
+      test_src
+      "tests/**.cpp"
+      "tests/**.cc"
+      "tests/**.c"
+      "tests/**.hpp"
+      "tests/**.hh"
+      "tests/**.h"
+    )
+    if(test_src)
+      # Check for module test data
+      file(GLOB_RECURSE test_data_files "${CMAKE_CURRENT_SOURCE_DIR}/tests/data/**")
+      foreach(test_data_file ${test_data_files})
         # Calculate the Output Directory
-        FILE(RELATIVE_PATH output_file "${CMAKE_CURRENT_SOURCE_DIR}/data" ${data_file})
-        SET(output_file "${PROJECT_BINARY_DIR}/${output_file}")
+        file(RELATIVE_PATH output_file "${CMAKE_CURRENT_SOURCE_DIR}/tests/data" ${test_data_file})
+        set(output_file "${PROJECT_BINARY_DIR}/tests/${output_file}")
 
         # Add the file we will generate to our output
-        LIST(APPEND data "${output_file}")
+        list(APPEND test_data "${output_file}")
 
         # Create the required folder
-        GET_FILENAME_COMPONENT(output_folder ${output_file} DIRECTORY)
-        FILE(MAKE_DIRECTORY ${output_folder})
+        get_filename_component(output_folder ${output_file} DIRECTORY)
+        file(MAKE_DIRECTORY ${output_folder})
 
         # Copy across the files
-        ADD_CUSTOM_COMMAND(
-            OUTPUT ${output_file}
-            COMMAND ${CMAKE_COMMAND} -E copy ${data_file} ${output_file}
-            DEPENDS ${data_file}
-            COMMENT "Copying updated data file ${data_file}"
+        add_custom_command(
+          OUTPUT ${output_file}
+          COMMAND ${CMAKE_COMMAND} -E copy ${test_data_file} ${output_file}
+          DEPENDS ${test_data_file}
+          COMMENT "Copying updated test data file ${test_data_file}"
         )
+      endforeach(test_data_file)
 
-        SET(NUCLEAR_MODULE_DATA_FILES ${NUCLEAR_MODULE_DATA_FILES} ${output_file} CACHE INTERNAL "A list of all the data files that were generated by modules" FORCE)
-    ENDFOREACH(data_file)
+      add_executable(${test_module_target_name} ${test_src} ${test_data})
 
-    FOREACH(data_file ${MODULE_DATA_FILES})
-        STRING(REPLACE ":" ";" data_file ${data_file})
+      # Our source dir and binary dir are our include paths
+      target_include_directories(${test_module_target_name} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+      target_include_directories(${test_module_target_name} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/src")
+      target_include_directories(${test_module_target_name} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+      target_include_directories(${test_module_target_name} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/tests")
 
-        # Get data file name
-        LIST(GET data_file 0 input_file)
-        GET_FILENAME_COMPONENT(input_file_name ${input_file} NAME)
+      target_link_libraries(${test_module_target_name} ${module_target_name})
+      target_link_libraries(${test_module_target_name} Catch2::Catch2WithMain)
 
-        # Determine output file
-        LIST(LENGTH data_file list_length)
-        IF(${list_length} EQUAL 1)
-            SET(output_file "${PROJECT_BINARY_DIR}/${input_file_name}")
+      set_property(TARGET ${test_module_target_name} PROPERTY FOLDER "modules/tests")
 
-        ELSE()
-            LIST(GET data_file 1 output_folder)
-            FILE(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${output_folder})
-            SET(output_file ${PROJECT_BINARY_DIR}/${output_folder}/${input_file_name})
-        ENDIF()
+      # Add the test
+      add_test(
+        NAME ${test_module_target_name}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_module_target_name}
+      )
 
-        # Add the file we will generate to our output
-        LIST(APPEND data "${output_file}")
+    endif()
+  endif()
 
-        # Copy across the files
-        ADD_CUSTOM_COMMAND(
-            OUTPUT ${output_file}
-            COMMAND ${CMAKE_COMMAND} -E copy ${input_file} ${output_file}
-            DEPENDS ${input_file}
-            COMMENT "Copying updated data file ${input_file}"
-        )
-
-        SET(NUCLEAR_MODULE_DATA_FILES ${NUCLEAR_MODULE_DATA_FILES} ${output_file} CACHE INTERNAL "A list of all the data files that were generated by modules" FORCE)
-    ENDFOREACH(data_file)
-
-    ######################
-    # Build into library #
-    ######################
-
-    # Add all our code to a library and if we are doing a shared build make it a shared library
-    SET(sources ${src} ${MODULE_SOURCES} ${data})
-
-    IF(NUCLEAR_SHARED_BUILD)
-        ADD_LIBRARY(${module_target_name} SHARED ${sources})
-        SET_PROPERTY(TARGET ${module_target_name} PROPERTY LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/lib")
-    ELSE()
-        ADD_LIBRARY(${module_target_name} STATIC ${sources})
-    ENDIF()
-
-    TARGET_LINK_LIBRARIES(${module_target_name} ${NUCLEAR_UTILITY_LIBRARIES} ${NUCLEAR_MESSAGE_LIBRARIES} ${NUCLEAR_EXTENSION_LIBRARIES} ${MODULE_LIBRARIES} ${NUClear_LIBRARIES})
-
-    # Put it in an IDE group for shared
-    SET_PROPERTY(TARGET ${module_target_name} PROPERTY FOLDER ${module_path})
-
-    ###########
-    # Testing #
-    ###########
-
-    # If we are doing tests then build the tests for this
-    IF(BUILD_TESTS)
-        # Set a different name for our test module
-        SET(test_module_target_name "Test${module_target_name}")
-
-        # Rebuild our sources using the test module
-        FILE(GLOB_RECURSE test_src "tests/**.cpp" "tests/**.cc" "tests/**.c" "tests/**.hpp" "tests/**.hh" "tests/**.h")
-        IF(test_src)
-          ADD_EXECUTABLE(${test_module_target_name} ${test_src})
-          TARGET_LINK_LIBRARIES(${test_module_target_name} ${module_target_name} ${MODULE_TEST_LIBRARIES} ${NUCLEAR_TEST_LIBRARIES})
-
-          SET_PROPERTY(TARGET ${test_module_target_name} PROPERTY FOLDER "modules/tests")
-
-          # Add the test
-          ADD_TEST(NAME ${test_module_target_name} WORKING_DIRECTORY ${CMAKE_BINARY_DIR} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${test_module_target_name})
-
-        ENDIF()
-    ENDIF()
-
-ENDFUNCTION(NUCLEAR_MODULE)
+endfunction(NUCLEAR_MODULE)
